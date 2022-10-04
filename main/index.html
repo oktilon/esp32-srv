@@ -1,0 +1,27 @@
+<!DOCTYPE html><html>
+    <head>
+        <title>ESP32 Сервак</title>
+    </head>
+    <body>
+        <h1>ESP32 Сервак</h1>
+        <center>
+            <div id='led'>LED is ###</div>
+            <div>
+                <button id='on' onclick='led_on()'>ON</button>
+                <button id='off' onclick='led_off()'>OFF</button>
+            </div>
+        </center>
+    </body>
+    <script type='application/javascript'>
+        function led_on() {
+            const req = new XMLHttpRequest();
+            req.open('GET', '/led_on');
+            req.send();
+        }
+        function led_off() {
+            const req = new XMLHttpRequest();
+            req.open('GET', '/led_off');
+            req.send();
+        }
+    </script>
+</html>
