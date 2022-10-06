@@ -1,26 +1,56 @@
 <!DOCTYPE html><html>
     <head>
         <title>ESP32 Сервак</title>
+        <style>
+            .btn {
+                width: 30%;
+            }
+            .btnw {
+                width: 60%;
+            }
+        </style>
     </head>
     <body>
         <h1>ESP32 Сервак</h1>
-        <center>
+        <center style="width:100%;">
             <div id='led'>LED is ###</div>
             <div>
-                <button id='on' onclick='led_on()'>ON</button>
-                <button id='off' onclick='led_off()'>OFF</button>
+                <button id='on' class="btn" onclick='led_on()'>ON</button>
+                <button id='off' class="btn" onclick='led_off()'>OFF</button>
+            </div>
+            <div>
+                <button id='send' class="btnw" onclick='send()'>SEND</button>
             </div>
         </center>
     </body>
     <script type='application/javascript'>
+        function led_answer(e) {
+            if (this.readyState === 4) {
+                if (this.status === 200) {
+                    console.log(this.responseText);
+                } else {
+                    console.error(this.statusText);
+                }
+            }
+            };
+            xhr.onerror = (e) => {
+            console.error(xhr.statusText);
+        }
         function led_on() {
             const req = new XMLHttpRequest();
-            req.open('GET', '/led_on');
+            req.open('GET', '/led_on', true);
+            req.onload = led_answer;
             req.send();
         }
         function led_off() {
             const req = new XMLHttpRequest();
-            req.open('GET', '/led_off');
+            req.open('GET', '/led_off', true);
+            req.onload = led_answer;
+            req.send();
+        }
+        function send() {
+            const req = new XMLHttpRequest();
+            req.open('GET', '/send');
             req.send();
         }
     </script>
