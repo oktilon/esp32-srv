@@ -426,7 +426,7 @@ static esp_err_t index_get_handler(httpd_req_t *req) {
     int sz;
     int rep = 0;
     int lvl = gpio_get_level(LED);
-    char buf[2048] = {0};
+    char buf[4000] = {0};
     const char *led_lvl = lvl ? "ON " : "OFF";
     const char *led_cls = lvl ? "on " : "off";
     sprintf(buf, INDEX_HTML, led_cls, led_lvl);
