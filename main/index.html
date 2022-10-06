@@ -2,55 +2,101 @@
     <head>
         <title>ESP32 Сервак</title>
         <style>
+            body {
+                font-size: 3rem;
+                text-align: center;
+                width: 100%;
+            }
+            .unk {
+                color: gray;
+                font-weight: normal;
+            }
+            .on {
+                color: blue;
+                font-weight: bold;
+            }
+            .off {
+                color: lightcoral;
+                font-weight: bold;
+            }
+            .hdr {
+                font-weight: bold;
+                text-align: center;
+            }
             .btn {
                 width: 30%;
+                /* font-size: 4rem; */
             }
             .btnw {
                 width: 60%;
+                /* font-size: 4rem; */
             }
         </style>
     </head>
     <body>
-        <h1>ESP32 Сервак</h1>
-        <center style="width:100%;">
-            <div id='led'>LED is ###</div>
-            <div>
-                <button id='on' class="btn" onclick='led_on()'>ON</button>
-                <button id='off' class="btn" onclick='led_off()'>OFF</button>
-            </div>
-            <div>
-                <button id='send' class="btnw" onclick='send()'>SEND</button>
-            </div>
-        </center>
+        <div class="hdr">ESP32 Сервак</div>
+        <div>LED is <span id='led' class="%s">%s</span></div>
+        <div>
+            <button class="btn" onclick="led_on()">ON</button>
+            <button class="btn" onclick="led_off()">OFF</button>
+        </div>
+        <div>
+            <button class="btnw" onclick="send()">SEND</button>
+        </div>
     </body>
-    <script type='application/javascript'>
+    <script type="application/javascript">
         function led_answer(e) {
             if (this.readyState === 4) {
                 if (this.status === 200) {
-                    console.log(this.responseText);
+                    let led = document.getElementById("led");
+                    if(this.responseText == 1) {
+                        led.className = "on";
+                        led.innerText = "ON";
+                    } else if(this.responseText == 0) {
+                        led.className = "off";
+                        led.innerText = "OFF";
+                    } else {
+                        led.className = "unk";
+                        led.innerText = "?";
+                    }
+                    return;
                 } else {
-                    console.error(this.statusText);
+                    alert("Status : " + this.statusText);
+                    return;
                 }
             }
-            };
-            xhr.onerror = (e) => {
-            console.error(xhr.statusText);
+            alert("Not ready");
         }
         function led_on() {
             const req = new XMLHttpRequest();
-            req.open('GET', '/led_on', true);
+            req.open("GET", "/led_on", true);
             req.onload = led_answer;
+            req.onerror = (e) => { alert("Error : " + req.statusText); };
             req.send();
         }
         function led_off() {
             const req = new XMLHttpRequest();
-            req.open('GET', '/led_off', true);
+            req.open("GET", "/led_off", true);
             req.onload = led_answer;
+            req.onerror = (e) => { alert("Error : " + req.statusText); };
             req.send();
         }
         function send() {
             const req = new XMLHttpRequest();
-            req.open('GET', '/send');
+            req.open("GET", "/send");
+            req.onload = (e) => {
+                if (req.readyState === 4) {
+                    if (req.status === 200) {
+                        alert("Answer : " + this.responseText);
+                        return;
+                    } else {
+                        alert("Status : " + this.statusText);
+                        return;
+                    }
+                }
+                alert("Not ready");
+            }
+            req.onerror = (e) => { alert("Error : " + req.statusText); };
             req.send();
         }
     </script>
