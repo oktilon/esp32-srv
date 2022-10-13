@@ -50,6 +50,8 @@
 
 static const char *TAG = "wifi-srv";
 
+uint8_t ledIsOn = 0;
+
 uint8_t uart_tx[UART_BUFFER_SIZE];
 uint8_t uart_rx[UART_BUFFER_SIZE];
 
@@ -445,34 +447,37 @@ static const httpd_uri_t uri_index = {
 
 static esp_err_t send_handler(httpd_req_t *req) {
     int rxBytes = 0;
-    char server_string[2] = {0x33, 0};
-    int timeout = 2000;
+    char server_string[2] = {0x39, 0}; // 9 - error
+    int timeout = 20;
 
-    uart_tx[0] = 0x33;
-    uart_tx[1] = 0x33;
-    uart_tx[2] = 0x33;
-    uart_write_bytes(UART_NUM_1, uart_tx, 3);
+    uart_tx[0] = 0xAA;
+    uart_tx[1] = 0x55;
+    uart_tx[2] = ledIsOn ? 0x00 : 0x01;
+    uart_tx[3] = 0x55;
+    uart_write_bytes(UART_NUM_1, uart_tx, 4);
     uart_flush_input(UART_NUM_1);
 
-    while (rxBytes < 1 && timeout > 0) {
-        rxBytes = uart_read_bytes(UART_NUM_1, uart_rx, 1, 200 / portTICK_RATE_MS);
-        timeout--;
-    }
-    if(rxBytes > 0) {
-        if(uart_rx[0] == 0x34) {
-            gpio_set_level(LED, 1);
-            server_string[0] = 0x31;
-        } else {
-            gpio_set_level(LED, 0);
-            server_string[0] = 0x30;
-        }
-        // if(uart_rx[0] == 0xAA && uart_rx[1] == 0x55) {
-        //     // if(uart_rx[0] == 0xAA) {
+    // while (rxBytes < 1 && timeout > 0) {
+    //     rxBytes = uart_read_bytes(UART_NUM_1, uart_rx, 2, 200 / portTICK_RATE_MS);
+    //     timeout--;
+    // }
+    // if(rxBytes > 0) {
+    //     if(uart_rx[0] == 0xAA) {
+    //         if(uart_rx[1] == 0x31) {
+    //             gpio_set_level(LED, 1);
+    //             server_string[0] = 0x31;
+    //         } else {
+    //             gpio_set_level(LED, 0);
+    //             server_string[0] = 0x30;
+    //         }
+    //     }
+    //     // if(uart_rx[0] == 0xAA && uart_rx[1] == 0x55) {
+    //     //     // if(uart_rx[0] == 0xAA) {
 
-        //     // }
-        //     server_string[0] = (char)uart_rx[2];
-        // }
-    }
+    //     //     // }
+    //     //     server_string[0] = (char)uart_rx[2];
+    //     // }
+    // }
     httpd_resp_send(req, server_string, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
@@ -589,7 +594,7 @@ void init_uart() {
     int rx_buf_size = UART_BUFFER_SIZE * 2;
     uart_driver_install(UART_NUM_1, rx_buf_size, 0, 20, NULL, 0);
     uart_param_config(UART_NUM_1, &uart_config);
-    uart_set_pin(UART_NUM_1, GPIO_NUM_10, GPIO_NUM_9, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    uart_set_pin(UART_NUM_1, GPIO_NUM_4, GPIO_NUM_5, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
 
 
