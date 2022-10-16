@@ -44,7 +44,7 @@
 // CONFIG_ESP_MAX_STA_CONN
 #define EXAMPLE_MAX_STA_CONN        4
 
-#define LED                         5
+#define LED                         22
 
 #define UART_BUFFER_SIZE            128
 
@@ -62,124 +62,6 @@ typedef struct {
 
 void init_uart(void);
 
-#if CONFIG_EXAMPLE_BASIC_AUTH
-
-typedef struct {
-    char    *username;
-    char    *password;
-} basic_auth_info_t;
-
-#define HTTPD_401      "401 UNAUTHORIZED"           /*!< HTTP Response 401 */
-
-static char *http_auth_basic(const char *username, const char *password)
-{
-    int out;
-    char *user_info = NULL;
-    char *digest = NULL;
-    size_t n = 0;
-    asprintf(&user_info, "%s:%s", username, password);
-    if (!user_info) {
-        ESP_LOGE(TAG, "No enough memory for user information");
-        return NULL;
-    }
-    esp_crypto_base64_encode(NULL, 0, &n, (const unsigned char *)user_info, strlen(user_info));
-
-    /* 6: The length of the "Basic " string
-     * n: Number of bytes for a base64 encode format
-     * 1: Number of bytes for a reserved which be used to fill zero
-    */
-    digest = calloc(1, 6 + n + 1);
-    if (digest) {
-        strcpy(digest, "Basic ");
-        esp_crypto_base64_encode((unsigned char *)digest + 6, n, (size_t *)&out, (const unsigned char *)user_info, strlen(user_info));
-    }
-    free(user_info);
-    return digest;
-}
-
-/* An HTTP GET handler */
-static esp_err_t basic_auth_get_handler(httpd_req_t *req)
-{
-    char *buf = NULL;
-    size_t buf_len = 0;
-    basic_auth_info_t *basic_auth_info = req->user_ctx;
-
-    buf_len = httpd_req_get_hdr_value_len(req, "Authorization") + 1;
-    if (buf_len > 1) {
-        buf = calloc(1, buf_len);
-        if (!buf) {
-            ESP_LOGE(TAG, "No enough memory for basic authorization");
-            return ESP_ERR_NO_MEM;
-        }
-
-        if (httpd_req_get_hdr_value_str(req, "Authorization", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Authorization: %s", buf);
-        } else {
-            ESP_LOGE(TAG, "No auth value received");
-        }
-
-        char *auth_credentials = http_auth_basic(basic_auth_info->username, basic_auth_info->password);
-        if (!auth_credentials) {
-            ESP_LOGE(TAG, "No enough memory for basic authorization credentials");
-            free(buf);
-            return ESP_ERR_NO_MEM;
-        }
-
-        if (strncmp(auth_credentials, buf, buf_len)) {
-            ESP_LOGE(TAG, "Not authenticated");
-            httpd_resp_set_status(req, HTTPD_401);
-            httpd_resp_set_type(req, "application/json");
-            httpd_resp_set_hdr(req, "Connection", "keep-alive");
-            httpd_resp_set_hdr(req, "WWW-Authenticate", "Basic realm=\"Hello\"");
-            httpd_resp_send(req, NULL, 0);
-        } else {
-            ESP_LOGI(TAG, "Authenticated!");
-            char *basic_auth_resp = NULL;
-            httpd_resp_set_status(req, HTTPD_200);
-            httpd_resp_set_type(req, "application/json");
-            httpd_resp_set_hdr(req, "Connection", "keep-alive");
-            asprintf(&basic_auth_resp, "{\"authenticated\": true,\"user\": \"%s\"}", basic_auth_info->username);
-            if (!basic_auth_resp) {
-                ESP_LOGE(TAG, "No enough memory for basic authorization response");
-                free(auth_credentials);
-                free(buf);
-                return ESP_ERR_NO_MEM;
-            }
-            httpd_resp_send(req, basic_auth_resp, strlen(basic_auth_resp));
-            free(basic_auth_resp);
-        }
-        free(auth_credentials);
-        free(buf);
-    } else {
-        ESP_LOGE(TAG, "No auth header received");
-        httpd_resp_set_status(req, HTTPD_401);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_set_hdr(req, "Connection", "keep-alive");
-        httpd_resp_set_hdr(req, "WWW-Authenticate", "Basic realm=\"Hello\"");
-        httpd_resp_send(req, NULL, 0);
-    }
-
-    return ESP_OK;
-}
-
-static httpd_uri_t basic_auth = {
-    .uri       = "/basic_auth",
-    .method    = HTTP_GET,
-    .handler   = basic_auth_get_handler,
-};
-
-static void httpd_register_basic_auth(httpd_handle_t server)
-{
-    basic_auth_info_t *basic_auth_info = calloc(1, sizeof(basic_auth_info_t));
-    if (basic_auth_info) {
-        basic_auth_info->username = CONFIG_EXAMPLE_BASIC_AUTH_USERNAME;
-        basic_auth_info->password = CONFIG_EXAMPLE_BASIC_AUTH_PASSWORD;
-
-        basic_auth.user_ctx = basic_auth_info;
-        httpd_register_uri_handler(server, &basic_auth);
-    }
-}
-#endif
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                     int32_t event_id, void* event_data)
@@ -284,7 +166,7 @@ static esp_err_t led_get_handler(httpd_req_t *req) {
     const my_struct_t *pmy = (my_struct_t*)req->user_ctx;
     gpio_set_level(LED, pmy->led_state);
     char resp_str[50];
-    sprintf(resp_str, "Led is %s", pmy->msg);
+    sprintf(resp_str, "%d", pmy->led_state);
     httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
@@ -428,12 +310,26 @@ static esp_err_t index_get_handler(httpd_req_t *req) {
     int sz;
     int rep = 0;
     int lvl = gpio_get_level(LED);
-    char buf[4000] = {0};
+    char buf[1813] = {0};
     const char *led_lvl = lvl ? "ON " : "OFF";
     const char *led_cls = lvl ? "on " : "off";
-    sprintf(buf, INDEX_HTML, led_cls, led_lvl);
+    for(i = 0; i < index_htm_len; i++) {
+        buf[i] = index_htm[i];
+        if(i > 3 && buf[i-2] == 'C' && buf[i-1] == 'C' && buf[i] == 'C') {
+            buf[i-2] = led_cls[0];
+            buf[i-1] = led_cls[1];
+            buf[i] = led_cls[2];
+        }
+        if(i > 3 && buf[i-2] == 'T' && buf[i-1] == 'T' && buf[i] == 'T') {
+            buf[i-2] = led_lvl[0];
+            buf[i-1] = led_lvl[1];
+            buf[i] = led_lvl[2];
+        }
+    }
+    buf[i] = 0;
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
     httpd_resp_set_hdr(req, "Content-Type", "text/html; charset=UTF-8");
+    // httpd_resp_send(req, "<!DOCTYPE html><html><head><title>ESP32 Server</title></head><body><center>It works</center></body></html>", 106);
     httpd_resp_send(req, buf, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
@@ -452,8 +348,19 @@ static esp_err_t send_handler(httpd_req_t *req) {
 
     uart_tx[0] = 0xAA;
     uart_tx[1] = 0x55;
-    uart_tx[2] = ledIsOn ? 0x00 : 0x01;
+    uart_tx[2] = 0x00;
     uart_tx[3] = 0x55;
+
+    if(ledIsOn) {
+        uart_tx[2] = 0x00;
+        ledIsOn = 0;
+        server_string[0] = 0x37;
+    } else {
+        uart_tx[2] = 0x01;
+        ledIsOn = 1;
+        server_string[0] = 0x38;
+    }
+
     uart_write_bytes(UART_NUM_1, uart_tx, 4);
     uart_flush_input(UART_NUM_1);
 
