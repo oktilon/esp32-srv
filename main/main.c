@@ -594,6 +594,7 @@ void init_uart() {
     int rx_buf_size = UART_BUFFER_SIZE * 2;
     uart_driver_install(UART_NUM_1, rx_buf_size, 0, 20, NULL, 0);
     uart_param_config(UART_NUM_1, &uart_config);
+    //                         TX = 4       RX = 5
     uart_set_pin(UART_NUM_1, GPIO_NUM_4, GPIO_NUM_5, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
 
