@@ -461,11 +461,11 @@ static httpd_handle_t start_webserver(void)
     return NULL;
 }
 
-static void stop_webserver(httpd_handle_t server)
-{
-    // Stop the httpd server
-    httpd_stop(server);
-}
+// static void stop_webserver(httpd_handle_t server)
+// {
+//     // Stop the httpd server
+//     httpd_stop(server);
+// }
 
 // static void disconnect_handler(void* arg, esp_event_base_t event_base,
 //                                int32_t event_id, void* event_data)
